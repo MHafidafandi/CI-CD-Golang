@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  hafid-app-service:
+    build: .
+    ports:
+      - 8000:8000
+    restart: on-failure
+    networks:
+      - hafid-network
+    depends_on:
+      mysql-service:
+        condition: service_healthy # Wait until MySQL is healthy
+
+  mysql-service:
+    image: mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DATABASE_PASSWORD}
+    ports:
+      - 3307:3306
+    volumes:
+      - mysql-volume:/var/lib/mysql
+      - ./mariadb/init.sql:/data/application/init.sql
+    command: --init-file /data/application/init.sql
+    networks:
+      - hafid-network
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  hafid-network:
+    driver: bridge
+
+volumes:
+  mysql-volume:
